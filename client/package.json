@@ -6,12 +6,17 @@
     "axios": "^1.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+<<<<<<< HEAD
     "react-scripts": "^5.0.1"
+=======
+    "react-scripts": "5.0.1"
+>>>>>>> 1a75857ba5dd3d113430f596d195d96d0da34ff6
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build"
   },
+<<<<<<< HEAD
   "browserslist": {
     "production": [
       ">0.2%",
@@ -25,3 +30,8 @@
     ]
   }
 }
+=======
+  "proxy": "http://localhost:3001"
+}
+
+>>>>>>> 1a75857ba5dd3d113430f596d195d96d0da34ff6
