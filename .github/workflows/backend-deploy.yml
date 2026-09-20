@@ -28,6 +28,13 @@ jobs:
           cd backend
           zip -r ../backend.zip .
 
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8559CB1D87014339BB25E2748D2A92EE }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A987B9D0746F46D4852A88E6362D2D6E }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_19603E7406F048ACA7B3E64AF0882126 }}
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
