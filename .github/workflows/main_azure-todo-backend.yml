@@ -1,4 +1,4 @@
-name: Build and deploy Node.js app to Azure Web App - my-azure-website
+name: Build and deploy Node.js app to Azure Web App - azure-todo-backend
 
 on:
   push:
@@ -13,21 +13,21 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Install dependencies and build
+      - name: npm install, build, and test
         run: |
           npm install
           npm run build --if-present
+          npm run test --if-present
 
       - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: .
@@ -41,20 +41,20 @@ jobs:
 
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v4
         with:
           name: node-app
-
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A0AFFCCAF69742FE80F98A87F159D81F }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C80183E84CD94D8B89297C6061A0C19F }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_44EB52B0A80B4B1587AD7E0CF77D2EEA }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8559CB1D87014339BB25E2748D2A92EE }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A987B9D0746F46D4852A88E6362D2D6E }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_19603E7406F048ACA7B3E64AF0882126 }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'my-azure-website'
+          app-name: 'azure-todo-backend'
           slot-name: 'Production'
           package: .
