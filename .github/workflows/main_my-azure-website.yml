@@ -58,3 +58,4 @@ jobs:
           app-name: 'my-azure-website'
           slot-name: 'Production'
           package: .
+
