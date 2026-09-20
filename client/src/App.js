@@ -5,30 +5,44 @@ import './App.css';
 function App() {
   const [todos, setTodos] = useState([]);
   const [text, setText] = useState('');
+  const [theme, setTheme] = useState('light');
 
   useEffect(() => {
-    axios.get('/api/todos').then(res => setTodos(res.data));
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/api/tasks')
+      .then(res => setTodos(res.data))
+      .catch(err => console.error(err));
   }, []);
 
   const addTodo = async () => {
     if (!text.trim()) return;
-    const res = await axios.post('/api/todos', { text });
+    const res = await axios.post('http://localhost:5000/api/tasks', { text });
     setTodos(prev => [...prev, res.data]);
     setText('');
   };
 
   const toggleTodo = async (id, done) => {
-    const res = await axios.put(`/api/todos/${id}`, { done: !done });
-    setTodos(prev => prev.map(t => (t.id === id ? res.data : t)));
+    const res = await axios.put(`http://localhost:5000/api/tasks/${id}`, { done: !done });
+    setTodos(prev => prev.map(t => (t._id === id ? res.data : t)));
   };
 
   const deleteTodo = async id => {
-    await axios.delete(`/api/todos/${id}`);
-    setTodos(prev => prev.filter(t => t.id !== id));
+    await axios.delete(`http://localhost:5000/api/tasks/${id}`);
+    setTodos(prev => prev.filter(t => t._id !== id));
   };
 
   return (
     <div className="container">
+      <button
+        className="theme-toggle"
+        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+      >
+        Toggle {theme === 'light' ? 'Dark' : 'Light'} Mode
+      </button>
+
       <h1>Azure Todo App</h1>
 
       <div className="input-row">
@@ -42,14 +56,14 @@ function App() {
 
       <ul>
         {todos.map(t => (
-          <li key={t.id}>
+          <li key={t._id}>
             <span
               className={t.done ? 'done' : ''}
-              onClick={() => toggleTodo(t.id, t.done)}
+              onClick={() => toggleTodo(t._id, t.done)}
             >
               {t.text}
             </span>
-            <button className="delete" onClick={() => deleteTodo(t.id)}>X</button>
+            <button className="delete" onClick={() => deleteTodo(t._id)}>X</button>
           </li>
         ))}
       </ul>
@@ -58,4 +72,3 @@ function App() {
 }
 
 export default App;
-
