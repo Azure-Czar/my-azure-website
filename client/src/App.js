@@ -7,30 +7,32 @@ function App() {
   const [text, setText] = useState('');
   const [theme, setTheme] = useState('light');
 
+  const API_BASE = "https://azure-todo-backend-azfsdjgaa9buejhk.centralus-01.azurewebsites.net/api/tasks";
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/tasks')
+    axios.get(API_BASE)
       .then(res => setTodos(res.data))
       .catch(err => console.error(err));
   }, []);
 
   const addTodo = async () => {
     if (!text.trim()) return;
-    const res = await axios.post('http://localhost:5000/api/tasks', { text });
+    const res = await axios.post(API_BASE, { text });
     setTodos(prev => [...prev, res.data]);
     setText('');
   };
 
   const toggleTodo = async (id, done) => {
-    const res = await axios.put(`http://localhost:5000/api/tasks/${id}`, { done: !done });
+    const res = await axios.put(`${API_BASE}/${id}`, { done: !done });
     setTodos(prev => prev.map(t => (t._id === id ? res.data : t)));
   };
 
   const deleteTodo = async id => {
-    await axios.delete(`http://localhost:5000/api/tasks/${id}`);
+    await axios.delete(`${API_BASE}/${id}`);
     setTodos(prev => prev.filter(t => t._id !== id));
   };
 
