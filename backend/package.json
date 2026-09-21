@@ -1,19 +1,16 @@
 {
-  "name": "my-azure-website",
+  "name": "todo-backend",
   "version": "1.0.0",
-  "private": true,
+  "description": "Todo API with authentication",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "build": "npm run build --prefix client"
-  },
-  "engines": {
-    "node": ">=18"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "mongoose": "^7.6.0"
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.6.0"
   }
 }
