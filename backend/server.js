@@ -11,7 +11,6 @@ app.use(cors());
 app.use(express.json());
 
 // ============ DATABASE CONNECTION ============
-// Put your MongoDB connection string in an Environment Variable called MONGODB_URI
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todoapp';
 
 mongoose.connect(MONGODB_URI)
@@ -60,77 +59,8 @@ app.post('/api/signup', async (req, res) => {
     res.status(400).json({ error: 'Email already exists' });
   }
 });
-// ================== IMPORTS ==================
-const express = require('express');
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-require('dotenv').config();
 
-// ================== APP SETUP ==================
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// ================== DATABASE ==================
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todoapp';
-
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-// ================== MODELS ==================
-const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
-});
-
-const taskSchema = new mongoose.Schema({
-  text: { type: String, required: true },
-  done: { type: Boolean, default: false },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
-});
-
-const User = mongoose.model('User', userSchema);
-const Task = mongoose.model('Task', taskSchema);
-
-// ================== AUTH MIDDLEWARE ==================
-function authMiddleware(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Missing token' });
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret');
-    req.userId = decoded.userId;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-}
-
-// ================== AUTH ROUTES ==================
-
-// SIGNUP
-app.post('/api/signup', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email already exists' });
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    const user = new User({ email, password: hashed });
-    await user.save();
-
-    res.json({ message: 'Signup successful' });
-  } catch (err) {
-    res.status(500).json({ message: 'Signup failed', error: err.message });
-  }
-});
-
-// LOGIN
+// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -142,9 +72,9 @@ app.post('/api/login', async (req, res) => {
     if (!match) return res.status(400).json({ message: 'Invalid email or password' });
 
     const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'defaultsecret',
-      { expiresIn: '1h' }
+      { id: user._id },
+      process.env.JWT_SECRET || 'SECRET123',
+      { expiresIn: '7d' }
     );
 
     res.json({ token });
@@ -153,40 +83,35 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ================== TASK ROUTES ==================
-
-// GET TASKS
-app.get('/api/tasks', authMiddleware, async (req, res) => {
+// Get tasks
+app.get('/api/tasks', auth, async (req, res) => {
   const tasks = await Task.find({ userId: req.userId });
   res.json(tasks);
 });
 
-// ADD TASK
-app.post('/api/tasks', authMiddleware, async (req, res) => {
+// Add task
+app.post('/api/tasks', auth, async (req, res) => {
   const { text } = req.body;
-  const task = new Task({ text, userId: req.userId });
-  await task.save();
+  const task = await Task.create({ text, done: false, userId: req.userId });
   res.json(task);
 });
 
-// UPDATE TASK
-app.put('/api/tasks/:id', authMiddleware, async (req, res) => {
-  const { done } = req.body;
+// Update task
+app.put('/api/tasks/:id', auth, async (req, res) => {
   const task = await Task.findOneAndUpdate(
     { _id: req.params.id, userId: req.userId },
-    { done },
+    { done: req.body.done },
     { new: true }
   );
   res.json(task);
 });
 
-// DELETE TASK
-app.delete('/api/tasks/:id', authMiddleware, async (req, res) => {
-  await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  res.json({ message: 'Task deleted' });
+// Delete task
+app.delete('/api/tasks/:id', auth, async (req, res) => {
+  await Task.deleteOne({ _id: req.params.id, userId: req.userId });
+  res.json({ message: 'Deleted' });
 });
 
-// ================== START SERVER ==================
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
-
