@@ -12,6 +12,7 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,5 +36,15 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
+
+          # Your React app source folder
           app_location: "client"
+
+          # Your built files
           output_location: "build"
+
+          # Explicitly tell Azure where the artifacts are
+          app_artifact_location: "client/build"
+
+          # Prevent Azure from trying to auto-build
+          skip_app_build: true
