@@ -11,10 +11,13 @@ function Auth({ setToken }) {
     const endpoint = isLogin ? '/api/login' : '/api/signup';
 
     try {
-      const res = await axios.post(`http://localhost:5000${endpoint}`, {
-        email,
-        password
-      });
+      const res = await axios.post(
+        `https://azure-todo-backend-azfsdjgaa9buejhk.centralus-01.azurewebsites.net${endpoint}`,
+        {
+          email,
+          password
+        }
+      );
 
       if (isLogin) {
         localStorage.setItem('token', res.data.token);
