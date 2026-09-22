@@ -1,9 +1,18 @@
-const mongoose = require("mongoose");
+router.post("/tasks", authMiddleware, async (req, res) => {
+  try {
+    const { text, category, priority, dueDate } = req.body;
 
-const TaskSchema = new mongoose.Schema({
-  text: String,
-  completed: Boolean,
-  userId: String
+    const task = await Task.create({
+      userId: req.user.id,
+      text,
+      category,
+      priority,
+      dueDate
+    });
+
+    res.json(task);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create task" });
+  }
 });
-
-module.exports = mongoose.model("Task", TaskSchema);
