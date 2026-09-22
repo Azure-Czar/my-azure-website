@@ -42,9 +42,13 @@ jobs:
 
           # Your built files
           output_location: "build"
+<<<<<<< HEAD
 
           # Explicitly tell Azure where the artifacts are
           app_artifact_location: "client/build"
 
           # Prevent Azure from trying to auto-build
           skip_app_build: true
+=======
+          skip_app_build: true
+>>>>>>> 698103ab51f0445490918998d0916ff7918958a1
