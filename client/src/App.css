@@ -155,3 +155,32 @@ button.delete:hover {
   color: white;
 }
 
+/* ====== AUTH BOX ====== */
+.auth-box {
+  background: #ffffff10;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 300px;
+  margin: 20px auto;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.auth-box button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #0078ff;
+  color: white;
+  cursor: pointer;
+}
