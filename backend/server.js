@@ -1,5 +1,3 @@
-// server.js
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -11,7 +9,7 @@ dotenv.config();
 
 const app = express();
 
-// CORS FIX — THIS IS WHAT ALLOWS YOUR FRONTEND TO TALK TO YOUR BACKEND
+// CORS — allow your Azure Static Web App frontend
 app.use(
   cors({
     origin: "https://victorious-pond-06dfbbf10.5.azurestaticapps.net",
@@ -32,4 +30,6 @@ connectDB();
 
 // Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
