@@ -22,7 +22,8 @@ jobs:
         with:
           node-version: "18"
 
-      - name: Install dependencies
+      # FRONTEND: Build React app
+      - name: Install frontend dependencies
         working-directory: client
         run: npm install
 
@@ -30,6 +31,7 @@ jobs:
         working-directory: client
         run: npm run build
 
+      # DEPLOY BOTH FRONTEND + BACKEND
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -37,18 +39,10 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          # Your React app source folder
+          # FRONTEND CONFIG
           app_location: "client"
-
-          # Your built files
           output_location: "build"
-<<<<<<< HEAD
-
-          # Explicitly tell Azure where the artifacts are
-          app_artifact_location: "client/build"
-
-          # Prevent Azure from trying to auto-build
           skip_app_build: true
-=======
-          skip_app_build: true
->>>>>>> 698103ab51f0445490918998d0916ff7918958a1
+
+          # BACKEND CONFIG
+          api_location: "backend"

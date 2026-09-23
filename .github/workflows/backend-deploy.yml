@@ -1,14 +1,14 @@
 name: Deploy Azure Backend
 
-permissions:
-  id-token: write
-  contents: read
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build-and-deploy:
@@ -21,14 +21,15 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22"
 
       - name: Install backend dependencies
         working-directory: backend
-        run: npm install
+        run: npm install --omit=dev
 
-      - name: Zip backend folder
-        run: zip -r backend.zip backend
+      - name: Create backend deployment package
+        working-directory: backend
+        run: zip -r ../backend.zip . -x "node_modules/.cache/*"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -40,6 +41,6 @@ jobs:
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'azure-todo-backend'
-          slot-name: 'Production'
+          app-name: "azure-todo-backend"
+          slot-name: "Production"
           package: backend.zip
