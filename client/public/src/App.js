@@ -1,61 +1,230 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 function App() {
+  const [token, setToken] = useState(null);
   const [todos, setTodos] = useState([]);
-  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  const [text, setText] = useState("");
+  const [category, setCategory] = useState("General");
+  const [priority, setPriority] = useState("Low");
+  const [dueDate, setDueDate] = useState("");
+
+  // SIGNUP
+  const signup = async (email, password) => {
+    try {
+      await axios.post(
+        "https://my-azure-website-hsaug2hxbpfkephs.centralus-01.azurewebsites.net/api/signup",
+        { email, password }
+      );
+      alert("Account created! Please sign in.");
+    } catch (err) {
+      setError("Signup failed.");
+    }
+  };
+
+  // LOGIN
+  const login = async (email, password) => {
+    try {
+      const res = await axios.post(
+        "https://my-azure-website-hsaug2hxbpfkephs.centralus-01.azurewebsites.net/api/login",
+        { email, password }
+      );
+      setToken(res.data.token);
+      setError(null);
+    } catch {
+      setError("Invalid email or password");
+    }
+  };
+
+  // API BASE
+  const API_BASE =
+    "https://my-azure-website-hsaug2hxbpfkephs.centralus-01.azurewebsites.net/api/tasks";
+
+  // LOAD TASKS
   useEffect(() => {
-    axios.get('/api/todos').then(res => setTodos(res.data));
-  }, []);
+    if (!token) return;
 
+    setLoading(true);
+
+    axios
+      .get(API_BASE, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((res) => setTodos(res.data))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  // ADD TODO
   const addTodo = async () => {
     if (!text.trim()) return;
-    const res = await axios.post('/api/todos', { text });
-    setTodos(prev => [...prev, res.data]);
-    setText('');
+
+    try {
+      const res = await axios.post(
+        API_BASE,
+        {
+          text,
+          category,
+          priority,
+          dueDate
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setTodos((prev) => [...prev, res.data]);
+      setText("");
+      setDueDate("");
+      setCategory("General");
+      setPriority("Low");
+    } catch {
+      setError("Could not add task.");
+    }
   };
 
-  const toggleTodo = async (id, done) => {
-    const res = await axios.put(`/api/todos/${id}`, { done: !done });
-    setTodos(prev => prev.map(t => (t.id === id ? res.data : t)));
+  // TOGGLE TODO
+  const toggleTodo = async (id, completed) => {
+    try {
+      const res = await axios.put(
+        `${API_BASE}/${id}`,
+        { completed: !completed },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setTodos((prev) => prev.map((t) => (t._id === id ? res.data : t)));
+    } catch {
+      setError("Could not update task.");
+    }
   };
 
-  const deleteTodo = async id => {
-    await axios.delete(`/api/todos/${id}`);
-    setTodos(prev => prev.filter(t => t.id !== id));
+  // DELETE TODO
+  const deleteTodo = async (id) => {
+    try {
+      await axios.delete(`${API_BASE}/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setTodos((prev) => prev.filter((t) => t._id !== id));
+    } catch {
+      setError("Could not delete task.");
+    }
   };
 
   return (
-    <div className="container">
-      <h1>Azure Todo App</h1>
+    <div style={{ padding: "20px", fontFamily: "Arial" }}>
+      <h1>My Azure Task App</h1>
 
-      <div className="input-row">
-        <input
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="Add a task"
-        />
-        <button onClick={addTodo}>Add</button>
-      </div>
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <ul>
-        {todos.map(t => (
-          <li key={t.id}>
-            <span
-              className={t.done ? 'done' : ''}
-              onClick={() => toggleTodo(t.id, t.done)}
-            >
-              {t.text}
-            </span>
-            <button className="delete" onClick={() => deleteTodo(t.id)}>X</button>
-          </li>
-        ))}
-      </ul>
+      {/* AUTH SECTION */}
+      {!token && (
+        <div style={{ marginBottom: "20px" }}>
+          <h2>Sign Up</h2>
+          <input type="email" id="signupEmail" placeholder="Email" />
+          <input type="password" id="signupPassword" placeholder="Password" />
+          <button
+            onClick={() =>
+              signup(
+                document.getElementById("signupEmail").value,
+                document.getElementById("signupPassword").value
+              )
+            }
+          >
+            Create Account
+          </button>
+
+          <h2>Login</h2>
+          <input type="email" id="loginEmail" placeholder="Email" />
+          <input type="password" id="loginPassword" placeholder="Password" />
+          <button
+            onClick={() =>
+              login(
+                document.getElementById("loginEmail").value,
+                document.getElementById("loginPassword").value
+              )
+            }
+          >
+            Login
+          </button>
+        </div>
+      )}
+
+      {/* ADD TASK */}
+      {token && (
+        <div style={{ marginBottom: "20px" }}>
+          <h2>Add Task</h2>
+          <input
+            type="text"
+            placeholder="Task text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
+
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option>General</option>
+            <option>Work</option>
+            <option>Home</option>
+            <option>Urgent</option>
+          </select>
+
+          <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+
+          <button onClick={addTodo}>Add Task</button>
+        </div>
+      )}
+
+      {/* TASK LIST */}
+      {token && (
+        <div>
+          <h2>Your Tasks</h2>
+
+          {loading && <p>Loading tasks...</p>}
+
+          {todos.map((todo) => (
+            <div key={todo._id} style={{ marginBottom: "10px" }}>
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => toggleTodo(todo._id, todo.completed)}
+              />
+
+              <span
+                style={{
+                  textDecoration: todo.completed ? "line-through" : "none",
+                  marginLeft: "10px"
+                }}
+              >
+                {todo.text} — {todo.category} — {todo.priority}
+              </span>
+
+              <button
+                style={{ marginLeft: "10px" }}
+                onClick={() => deleteTodo(todo._id)}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export default App;
-

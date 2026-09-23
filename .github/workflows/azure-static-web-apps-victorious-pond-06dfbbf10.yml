@@ -20,9 +20,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
-      # FRONTEND: Build React app
       - name: Install frontend dependencies
         working-directory: client
         run: npm install
@@ -31,18 +30,12 @@ jobs:
         working-directory: client
         run: npm run build
 
-      # DEPLOY BOTH FRONTEND + BACKEND
-      - name: Deploy to Azure Static Web Apps
+      - name: Deploy frontend to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-
-          # FRONTEND CONFIG
           app_location: "client"
           output_location: "build"
           skip_app_build: true
-
-          # BACKEND CONFIG
-          api_location: "backend"
