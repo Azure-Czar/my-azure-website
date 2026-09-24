@@ -1,229 +1,383 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import "./App.css";
+
+const API = process.env.REACT_APP_API_URL;
 
 function App() {
-  const [token, setToken] = useState(null);
-  const [todos, setTodos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [view, setView] = useState("home");
+  const [darkMode, setDarkMode] = useState(false);
 
-  const [text, setText] = useState("");
-  const [category, setCategory] = useState("General");
-  const [priority, setPriority] = useState("Low");
-  const [dueDate, setDueDate] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  // SIGNUP
-  const signup = async (email, password) => {
-    try {
-      await axios.post(
-        "https://my-azure-website-hsaug2hxbpfkephs.centralus-01.azurewebsites.net/api/signup",
-        { email, password }
-      );
-      alert("Account created! Please sign in.");
-    } catch (err) {
-      setError("Signup failed.");
-    }
-  };
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
-  // LOGIN
-  const login = async (email, password) => {
-    try {
-      const res = await axios.post(
-        "https://my-azure-website-hsaug2hxbpfkephs.centralus-01.azurewebsites.net/api/login",
-        { email, password }
-      );
-      setToken(res.data.token);
-      setError(null);
-    } catch {
-      setError("Invalid email or password");
-    }
-  };
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [role, setRole] = useState(localStorage.getItem("role") || "user");
 
-  // API BASE
-  const API_BASE =
-    "https://my-azure-website-hsaug2hxbpfkephs.centralus-01.azurewebsites.net/api/tasks";
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState("");
 
-  // LOAD TASKS
+  const [users, setUsers] = useState([]);
+  const [logs, setLogs] = useState([]);
+
+  // ---------- Dark Mode ----------
   useEffect(() => {
-    if (!token) return;
+    if (darkMode) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+  }, [darkMode]);
 
-    setLoading(true);
-
-    axios
-      .get(API_BASE, {
+  // ---------- Load Tasks ----------
+  useEffect(() => {
+    if (token) {
+      fetch(`${API}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      .then((res) => setTodos(res.data))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
+        .then(res => res.json())
+        .then(data => setTasks(data))
+        .catch(err => console.error("Error fetching tasks:", err));
+    }
   }, [token]);
 
-  // ADD TODO
-  const addTodo = async () => {
-    if (!text.trim()) return;
+  // ---------- Load Users (Admin Only) ----------
+  const loadUsers = async () => {
+    if (!token || role !== "admin") return;
+    const res = await fetch(`${API}/api/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    setUsers(data);
+  };
 
-    try {
-      const res = await axios.post(
-        API_BASE,
-        {
-          text,
-          category,
-          priority,
-          dueDate
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+  // ---------- Load Logs (Admin Only) ----------
+  const loadLogs = async () => {
+    if (!token || role !== "admin") return;
+    const res = await fetch(`${API}/api/logs`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    setLogs(data);
+  };
 
-      setTodos((prev) => [...prev, res.data]);
-      setText("");
-      setDueDate("");
-      setCategory("General");
-      setPriority("Low");
-    } catch {
-      setError("Could not add task.");
+  // ---------- Signup ----------
+  const handleSignup = async () => {
+    const res = await fetch(`${API}/api/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    alert(data.message || "Account created!");
+  };
+
+  // ---------- Login ----------
+  const handleLogin = async () => {
+    const res = await fetch(`${API}/api/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: loginEmail, password: loginPassword })
+    });
+
+    const data = await res.json();
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role || "user");
+      setToken(data.token);
+      setRole(data.role || "user");
+      setView("tasks");
+    } else {
+      alert(data.message || "Login failed");
     }
   };
 
-  // TOGGLE TODO
-  const toggleTodo = async (id, completed) => {
-    try {
-      const res = await axios.put(
-        `${API_BASE}/${id}`,
-        { completed: !completed },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      setTodos((prev) => prev.map((t) => (t._id === id ? res.data : t)));
-    } catch {
-      setError("Could not update task.");
-    }
+  // ---------- Logout ----------
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setToken("");
+    setRole("user");
+    setView("home");
+    setTasks([]);
   };
 
-  // DELETE TODO
-  const deleteTodo = async (id) => {
-    try {
-      await axios.delete(`${API_BASE}/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  // ---------- Add Task ----------
+  const addTask = async () => {
+    const res = await fetch(`${API}/api/tasks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ text: newTask })
+    });
 
-      setTodos((prev) => prev.filter((t) => t._id !== id));
-    } catch {
-      setError("Could not delete task.");
-    }
+    const data = await res.json();
+    setTasks([...tasks, data]);
+    setNewTask("");
+  };
+
+  // ---------- Delete Task ----------
+  const deleteTask = async (id) => {
+    await fetch(`${API}/api/tasks/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    setTasks(tasks.filter(t => t._id !== id));
+  };
+
+  // ---------- Update User Role (Admin) ----------
+  const updateUserRole = async (id, newRole) => {
+    await fetch(`${API}/api/users/${id}/role`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ role: newRole })
+    });
+    loadUsers();
+  };
+
+  // ---------- Disable/Enable User (Admin) ----------
+  const toggleUserDisabled = async (id, disabled) => {
+    await fetch(`${API}/api/users/${id}/disable`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ disabled })
+    });
+    loadUsers();
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>My Azure Task App</h1>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {/* AUTH SECTION */}
-      {!token && (
-        <div style={{ marginBottom: "20px" }}>
-          <h2>Sign Up</h2>
-          <input type="email" id="signupEmail" placeholder="Email" />
-          <input type="password" id="signupPassword" placeholder="Password" />
-          <button
-            onClick={() =>
-              signup(
-                document.getElementById("signupEmail").value,
-                document.getElementById("signupPassword").value
-              )
-            }
-          >
-            Create Account
+    <>
+      {/* ---------- Header ---------- */}
+      <div className="header">
+        <div>Azure IAM Console</div>
+        <div className="right">
+          <button className="primary" onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? "Light Mode" : "Dark Mode"}
           </button>
-
-          <h2>Login</h2>
-          <input type="email" id="loginEmail" placeholder="Email" />
-          <input type="password" id="loginPassword" placeholder="Password" />
-          <button
-            onClick={() =>
-              login(
-                document.getElementById("loginEmail").value,
-                document.getElementById("loginPassword").value
-              )
-            }
-          >
-            Login
-          </button>
+          {token && (
+            <button className="primary" onClick={handleLogout}>
+              Logout ({role})
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* ADD TASK */}
-      {token && (
-        <div style={{ marginBottom: "20px" }}>
-          <h2>Add Task</h2>
-          <input
-            type="text"
-            placeholder="Task text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
+      <div className="layout">
+        {/* ---------- Sidebar ---------- */}
+        <div className="sidebar">
+          <h3>Navigation</h3>
+          <button onClick={() => setView("home")}>Home</button>
+          <button onClick={() => setView("tasks")}>Tasks</button>
 
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option>General</option>
-            <option>Work</option>
-            <option>Home</option>
-            <option>Urgent</option>
-          </select>
-
-          <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-          </select>
-
-          <button onClick={addTodo}>Add Task</button>
-        </div>
-      )}
-
-      {/* TASK LIST */}
-      {token && (
-        <div>
-          <h2>Your Tasks</h2>
-
-          {loading && <p>Loading tasks...</p>}
-
-          {todos.map((todo) => (
-            <div key={todo._id} style={{ marginBottom: "10px" }}>
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo._id, todo.completed)}
-              />
-
-              <span
-                style={{
-                  textDecoration: todo.completed ? "line-through" : "none",
-                  marginLeft: "10px"
-                }}
-              >
-                {todo.text} — {todo.category} — {todo.priority}
-              </span>
-
-              <button
-                style={{ marginLeft: "10px" }}
-                onClick={() => deleteTodo(todo._id)}
-              >
-                Delete
+          {role === "admin" && (
+            <>
+              <button onClick={() => { setView("users"); loadUsers(); }}>
+                Users
               </button>
-            </div>
-          ))}
+              <button onClick={() => { setView("logs"); loadLogs(); }}>
+                Logs
+              </button>
+              <button onClick={() => setView("settings")}>Settings</button>
+            </>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* ---------- Main Content ---------- */}
+        <div className="main">
+
+          {/* ---------- Home ---------- */}
+          {view === "home" && (
+            <div className="panel">
+              <h2>Welcome</h2>
+              <p>This is your Azure‑style IAM dashboard.</p>
+              <p>Features: RBAC, Conditional Access, Audit Logs, Geo‑IP, Risk Engine.</p>
+            </div>
+          )}
+
+          {/* ---------- Signup / Login ---------- */}
+          {!token && (
+            <>
+              <div className="panel">
+                <h2>Sign Up</h2>
+                <input
+                  placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+                <input
+                  placeholder="Password"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button className="primary" onClick={handleSignup}>
+                  Create Account
+                </button>
+              </div>
+
+              <div className="panel">
+                <h2>Login</h2>
+                <input
+                  placeholder="Email"
+                  value={loginEmail}
+                  onChange={e => setLoginEmail(e.target.value)}
+                />
+                <input
+                  placeholder="Password"
+                  type="password"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                />
+                <button className="primary" onClick={handleLogin}>
+                  Login
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ---------- Tasks ---------- */}
+          {token && view === "tasks" && (
+            <div className="panel">
+              <h2>Your Tasks</h2>
+
+              <input
+                placeholder="New task"
+                value={newTask}
+                onChange={e => setNewTask(e.target.value)}
+              />
+              <button className="primary" onClick={addTask}>
+                Add Task
+              </button>
+
+              {tasks.map(t => (
+                <div key={t._id} className="task-item">
+                  {t.text}
+                  <button
+                    className="primary"
+                    style={{ background: "#d9534f" }}
+                    onClick={() => deleteTask(t._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ---------- User Management (Admin) ---------- */}
+          {token && view === "users" && role === "admin" && (
+            <div className="panel">
+              <h2>User Management</h2>
+              <table className="users-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Disabled</th>
+                    <th>Risk</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u._id}>
+                      <td>{u.email}</td>
+                      <td>{u.role || "user"}</td>
+                      <td>{u.disabled ? "Yes" : "No"}</td>
+                      <td>{u.riskScore ?? 0}</td>
+                      <td>
+                        <button
+                          className="primary"
+                          onClick={() =>
+                            updateUserRole(
+                              u._id,
+                              u.role === "admin" ? "user" : "admin"
+                            )
+                          }
+                        >
+                          Set {u.role === "admin" ? "User" : "Admin"}
+                        </button>
+
+                        <button
+                          className="primary"
+                          style={{ background: "#d9534f", marginLeft: 8 }}
+                          onClick={() =>
+                            toggleUserDisabled(u._id, !u.disabled)
+                          }
+                        >
+                          {u.disabled ? "Enable" : "Disable"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ---------- Audit Logs (Admin) ---------- */}
+          {token && view === "logs" && role === "admin" && (
+            <div className="panel">
+              <h2>Audit Logs</h2>
+              <table className="users-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Event</th>
+                    <th>Actor</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                    <th>IP</th>
+                    <th>Location</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map(log => (
+                    <tr key={log._id}>
+                      <td>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td>{log.type}</td>
+                      <td>{log.actor}</td>
+                      <td>{log.target}</td>
+                      <td>{log.details}</td>
+                      <td>{log.ip}</td>
+                      <td>{log.location}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ---------- Settings ---------- */}
+          {token && view === "settings" && role === "admin" && (
+            <div className="panel">
+              <h2>Settings / Conditional Access</h2>
+              <ul>
+                <li>Login allowed only during business hours (8am–6pm).</li>
+                <li>Weak passwords are rejected at signup.</li>
+                <li>Disabled accounts cannot log in.</li>
+                <li>Only US IP addresses allowed.</li>
+                <li>High-risk users (risk ≥ 80) are blocked.</li>
+              </ul>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </>
   );
 }
 

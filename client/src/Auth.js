@@ -1,69 +1,66 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import './App.css';
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
-function Auth({ setToken }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+module.exports = function (usersCollection) {
+  const router = express.Router();
 
-  const submit = async () => {
-    const endpoint = isLogin ? '/api/login' : '/api/signup';
+  // -----------------------------
+  // Signup
+  // -----------------------------
+  router.post("/signup", async (req, res) => {
+    const { email, password } = req.body;
 
     try {
-      const res = await axios.post(
-        `https://azure-todo-backend-azfsdjgaa9buejhk.centralus-01.azurewebsites.net${endpoint}`,
-        {
-          email,
-          password
-        }
+      const existing = await usersCollection.findOne({ email });
+      if (existing) {
+        return res.json({ message: "Email already exists" });
+      }
+
+      const hashed = await bcrypt.hash(password, 10);
+
+      await usersCollection.insertOne({
+        email,
+        password: hashed,
+        createdAt: new Date(),
+      });
+
+      res.json({ message: "Account created successfully" });
+    } catch (err) {
+      console.error("Signup error:", err);
+      res.status(500).json({ message: "Server error during signup" });
+    }
+  });
+
+  // -----------------------------
+  // Login
+  // -----------------------------
+  router.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+      const user = await usersCollection.findOne({ email });
+      if (!user) {
+        return res.json({ message: "Invalid email or password" });
+      }
+
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+        return res.json({ message: "Invalid email or password" });
+      }
+
+      const token = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
       );
 
-      if (isLogin) {
-        localStorage.setItem('token', res.data.token);
-        setToken(res.data.token);
-      } else {
-        alert('Account created! You can now log in.');
-        setIsLogin(true);
-      }
+      res.json({ token });
     } catch (err) {
-      alert(err.response?.data?.error || 'Error');
+      console.error("Login error:", err);
+      res.status(500).json({ message: "Server error during login" });
     }
-  };
+  });
 
-  return (
-    <div className="container">
-      <h1>{isLogin ? 'Login' : 'Sign Up'}</h1>
-
-      <div className="input-row">
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-        />
-      </div>
-
-      <div className="input-row">
-        <input
-          placeholder="Password"
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
-      </div>
-
-      <button onClick={submit}>
-        {isLogin ? 'Login' : 'Create Account'}
-      </button>
-
-      <button
-        className="theme-toggle"
-        onClick={() => setIsLogin(!isLogin)}
-      >
-        {isLogin ? 'Need an account?' : 'Already have an account?'}
-      </button>
-    </div>
-  );
-}
-
-export default Auth;
+  return router;
+};
